@@ -63,7 +63,16 @@ def run_gminer(mining_address, worker_name):
     os.system(gminer_command)
 
 
-def run_miner(mining_address, worker_name, use_cpu, use_gpu, cpu_prio):
+def run_miner(mining_address, worker_name, use_cpu, use_gpu, cpu_prio, change_fan_speed, fan_speed):
+    if change_fan_speed.lower() == 'yes':
+        unlock_fan_control_command = "nvidia-settings -a [gpu:0]/GPUFanControlState=1"
+        subprocess.run(['sudo', f'{unlock_fan_control_command}'])
+        fan0_speed_command = f"nvidia-settings -a [fan:0]/GPUTargetFanSpeed={
+            fan_speed}"
+        subprocess.run(['sudo', f'{fan0_speed_command}'])
+        fan1_speed_command = f"nvidia-settings -a [fan:1]/GPUTargetFanSpeed={
+            fan_speed}"
+        subprocess.run(['sudo', f'{fan1_speed_command}'])
     if use_cpu.lower() == 'yes':
         xmrig_process = multiprocessing.Process(
             target=run_xmrig, args=(mining_address, worker_name, cpu_prio))
@@ -89,6 +98,11 @@ if __name__ == "__main__":
     use_cpu = input("Do you want to mine using CPU? (yes/no): ")
     cpu_prio = input("Enter cpu_priority for cpu mining: ")
     use_gpu = input("Do you want to mine using GPU? (yes/no): ")
+    change_fan_speed = input(
+        "Do you want to change target fan speed for GPU? (Nvidia-Only, single gpu) :")
+    if change_fan_speed.lower() == 'yes':
+        fan_speed = input("Set Target FAN Speed (GPU0): ")
 
     download_deps()
-    run_miner(mining_address, worker_name, use_cpu, use_gpu, cpu_prio)
+    run_miner(mining_address, worker_name, use_cpu, use_gpu,
+              cpu_prio, change_fan_speed, fan_speed)
