@@ -14,6 +14,9 @@ sudo nvidia-xconfig -a --cool-bits=31 --allow-empty-initial-configuration
 
 # roadmap
 add multi gpu support for fan control
+
 add locking clock
+
 add different algos
+
 add support for other distros
