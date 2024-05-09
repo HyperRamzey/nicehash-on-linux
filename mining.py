@@ -4,8 +4,19 @@ import platform
 import subprocess
 import shutil
 import multiprocessing
+import atexit
 
 CONFIG_FILE = 'config.ini'
+
+
+def exit_handler():
+    revert_fan_speed = input('Do you want to restore fan speed?: ')
+    if revert_fan_speed.lower() == 'yes':
+        lock_fan_control_command = "nvidia-settings -a [gpu:0]/GPUFanControlState=0"
+        os.system(lock_fan_control_command)
+
+
+atexit.register(exit_handler)
 
 
 def input_mining_address():
@@ -64,27 +75,27 @@ def run_gminer(mining_address, worker_name):
 
 
 def run_miner(mining_address, worker_name, use_cpu, use_gpu, cpu_prio, change_fan_speed, fan_speed):
-    if change_fan_speed.lower() == 'yes':
+    if change_fan_speed.lower() == 'y':
         unlock_fan_control_command = "nvidia-settings -a [gpu:0]/GPUFanControlState=1"
-        subprocess.run(['sudo', f'{unlock_fan_control_command}'])
+        os.system(unlock_fan_control_command)
         fan0_speed_command = f"nvidia-settings -a [fan:0]/GPUTargetFanSpeed={
             fan_speed}"
-        subprocess.run(['sudo', f'{fan0_speed_command}'])
+        os.system(fan0_speed_command)
         fan1_speed_command = f"nvidia-settings -a [fan:1]/GPUTargetFanSpeed={
             fan_speed}"
-        subprocess.run(['sudo', f'{fan1_speed_command}'])
-    if use_cpu.lower() == 'yes':
+        os.system(fan1_speed_command)
+    if use_cpu.lower() == 'y':
         xmrig_process = multiprocessing.Process(
             target=run_xmrig, args=(mining_address, worker_name, cpu_prio))
         xmrig_process.start()
-    if use_gpu.lower() == 'yes':
+    if use_gpu.lower() == 'y':
         gminer_process = multiprocessing.Process(
             target=run_gminer, args=(mining_address, worker_name))
         gminer_process.start()
 
-    if use_cpu.lower() == 'yes':
+    if use_cpu.lower() == 'y':
         xmrig_process.join()
-    if use_gpu.lower() == 'yes':
+    if use_gpu.lower() == 'y':
         gminer_process.join()
 
 
@@ -95,13 +106,16 @@ if __name__ == "__main__":
         worker_name = input_worker_name()
         save_to_config(mining_address, worker_name)
 
-    use_cpu = input("Do you want to mine using CPU? (yes/no): ")
-    cpu_prio = input("Enter cpu_priority for cpu mining: ")
-    use_gpu = input("Do you want to mine using GPU? (yes/no): ")
+    use_cpu = input("Do you want to mine using CPU? (y/n): ")
+    if use_cpu.lower() == 'y':
+        cpu_prio = input("Enter cpu_priority for cpu mining: ")
+    elif use_cpu.lower() == 'n':
+        cpu_prio = 0
+    use_gpu = input("Do you want to mine using GPU? (y/n): ")
     change_fan_speed = input(
-        "Do you want to change target fan speed for GPU? (Nvidia-Only, single gpu) :")
-    if change_fan_speed.lower() == 'yes':
-        fan_speed = input("Set Target FAN Speed (GPU0): ")
+        "Do you want to change target fan speed for GPU? (Nvidia-Only, single gpu): (y/n)")
+    if change_fan_speed.lower() == 'y':
+        fan_speed = input("Set Target FAN Speed (GPU0): (%)")
 
     download_deps()
     run_miner(mining_address, worker_name, use_cpu, use_gpu,
