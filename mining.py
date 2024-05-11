@@ -116,7 +116,8 @@ if __name__ == "__main__":
         "Do you want to change target fan speed for GPU? (Nvidia-Only, single gpu): (y/n)")
     if change_fan_speed.lower() == 'y':
         fan_speed = input("Set Target FAN Speed (GPU0): (%)")
-
+    elif change_fan_speed.lower() == 'n':
+        fan_speed = 35
     download_deps()
     run_miner(mining_address, worker_name, use_cpu, use_gpu,
               cpu_prio, change_fan_speed, fan_speed)
