@@ -1,7 +1,7 @@
 # nicehash-on-linux
-Simple python script to mine using GPU(gminer)/CPU(xmrig) on linux (nicehash), now with fan speed control.
+Simple python script to mine using GPU(gminer/miniZ)/CPU(xmrig) on linux (nicehash), now with fan speed control.
 
-Run as Sudo if you wish to use xmrig`s msr mod and fan control
+Run as Sudo if you wish to use xmrig`s msr mod and fan control or miniZ overclocking options
 
 Tested on arch linux. Install gminer and xmrig on your system manually if it is not arch.
 
