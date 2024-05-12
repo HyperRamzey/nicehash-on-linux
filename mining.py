@@ -52,11 +52,16 @@ def save_to_config(mining_address, worker_name):
 
 def download_deps():
     if platform.system() == 'Linux':
-        if platform.release() == 'arch':
-            if shutil.which('xmrig') is None:
-                subprocess.run(['sudo', 'pacman', '-Sy', 'xmrig'])
-            elif shutil.which('miner') is None:
-                subprocess.run(['yay', '-Sy', 'gminer-bin'])
+        if shutil.which('xmrig') is None:
+            subprocess.run(['sudo', 'pacman', '-Sy', 'xmrig', 'curl', '7-zip'])
+        if shutil.which('miner') is None:
+            subprocess.run(['yay', '-Sy', 'gminer-bin'])
+        if os.path.exists("miniZ"):
+            print('miniz found')
+        else:
+            subprocess.run(['curl', '-o', '1.tar.gz', 'https://miniz.cc/?smd_process_download=1&download_id=5017'])
+            subprocess.run(['7zz', 'e', '1.tar.gz'])
+            subprocess.run(['7zz', 'e', '1.tar'])
 
 
 def run_xmrig(mining_address, worker_name, cpu_prio):
@@ -68,13 +73,19 @@ def run_xmrig(mining_address, worker_name, cpu_prio):
     os.system(xmrig_command)
 
 
-def run_gminer(mining_address, worker_name):
+def run_gminer_kawpow(mining_address, worker_name):
     gminer_command = f'miner --algo kawpow --server stratum+ssl://kawpow.auto.nicehash.com:443 --user {
         mining_address}.{worker_name} -p x'
     os.system(gminer_command)
 
 
-def run_miner(mining_address, worker_name, use_cpu, use_gpu, cpu_prio, change_fan_speed, fan_speed):
+def run_miniz_zelhash(mining_address, worker_name):
+    miniz_command = f'./miniZ --worker worker --url ssl://{
+        mining_address}.{worker_name}@zelhash.auto.nicehash.com:443 --oc1 --smart-pers --mt-auto'
+    os.system(miniz_command)
+
+
+def run_miner(mining_address, worker_name, use_cpu, use_gpu, cpu_prio, change_fan_speed, fan_speed, mining_alg):
     if change_fan_speed.lower() == 'y':
         unlock_fan_control_command = "nvidia-settings -a [gpu:0]/GPUFanControlState=1"
         os.system(unlock_fan_control_command)
@@ -89,8 +100,12 @@ def run_miner(mining_address, worker_name, use_cpu, use_gpu, cpu_prio, change_fa
             target=run_xmrig, args=(mining_address, worker_name, cpu_prio))
         xmrig_process.start()
     if use_gpu.lower() == 'y':
-        gminer_process = multiprocessing.Process(
-            target=run_gminer, args=(mining_address, worker_name))
+        if mining_alg == 'kawpow':
+            gminer_process = multiprocessing.Process(
+                target=run_gminer_kawpow, args=(mining_address, worker_name))
+        elif mining_alg == 'zelhash':
+            gminer_process = multiprocessing.Process(
+                target=run_miniz_zelhash, args=(mining_address, worker_name))
         gminer_process.start()
 
     if use_cpu.lower() == 'y':
@@ -105,7 +120,8 @@ if __name__ == "__main__":
         mining_address = input_mining_address()
         worker_name = input_worker_name()
         save_to_config(mining_address, worker_name)
-
+    download_deps()
+    mining_alg = input("Select Mining Algo (zelhash or kawpow): ")
     use_cpu = input("Do you want to mine using CPU? (y/n): ")
     if use_cpu.lower() == 'y':
         cpu_prio = input("Enter cpu_priority for cpu mining: ")
@@ -118,6 +134,5 @@ if __name__ == "__main__":
         fan_speed = input("Set Target FAN Speed (GPU0): (%)")
     elif change_fan_speed.lower() == 'n':
         fan_speed = 35
-    download_deps()
     run_miner(mining_address, worker_name, use_cpu, use_gpu,
-              cpu_prio, change_fan_speed, fan_speed)
+              cpu_prio, change_fan_speed, fan_speed, mining_alg)
