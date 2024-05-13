@@ -1,8 +1,6 @@
 # nicehash-on-linux
 Simple python script to mine using GPU(miniZ)/CPU(xmrig) on linux (nicehash), now with fan speed control.
 
-Run as Sudo if you wish to use xmrig`s msr mod and fan control or miniZ overclocking options
-
 Tested on arch linux. Install curl and p7zip on your system manually if it is not arch.
 
 Edit config.ini after first start to change options.
