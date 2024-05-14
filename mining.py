@@ -94,13 +94,20 @@ def download_deps():
             subprocess.run(['7z', 'e', 'miniz.tar.gz'])
             subprocess.run(['7z', 'e', 'miniz.tar'])
             subprocess.run(['chmod', '+x', 'miniZ'])
-    shutil.rmtree('xmrig-6.21.3')
-    os.remove('miniZ.sha256sum')
-    os.remove('SHA256SUMS')
-    os.remove('xmrig-6.21.3-linux-static-x64.tar.gz')
-    os.remove('xmrig-6.21.3-linux-static-x64.tar')
-    os.remove('miniz.tar.gz')
-    os.remove('miniz.tar')
+    if os.path.exists("xmrig-6.21.3"):
+        shutil.rmtree('xmrig-6.21.3')
+    if os.path.exists("miniZ.sha256sum"):
+        os.remove('miniZ.sha256sum')
+    if os.path.exists("SHA256SUMS"):
+        os.remove('SHA256SUMS')
+    if os.path.exists("xmrig-6.21.3-linux-static-x64.tar.gz"):
+        os.remove('xmrig-6.21.3-linux-static-x64.tar.gz')
+    if os.path.exists("xmrig-6.21.3-linux-static-x64.tar"):
+        os.remove('xmrig-6.21.3-linux-static-x64.tar')
+    if os.path.exists("miniz.tar.gz"):
+        os.remove('miniz.tar.gz')
+    if os.path.exists("miniz.tar"):
+        os.remove('miniz.tar')
 
 
 def run_xmrig(mining_address, worker_name, cpu_prio, protocol, mining_port, tls_flag):
