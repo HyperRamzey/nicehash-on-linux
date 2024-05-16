@@ -46,13 +46,15 @@ def load_from_config():
             config['MINER'].get('mining_alg'),
             config['MINER'].get('protocol'),
             config['MINER'].get('mining_port'),
-            config['MINER'].get('powerlimit')
+            config['MINER'].get('powerlimit'),
+            config['MINER'].get('gpuoffset'),
+            config['MINER'].get('memoffset'),
         )
     else:
-        return None, None, None, None, None, None, None, None, None, None, None
+        return None, None, None, None, None, None, None, None, None, None, None, None, None, None
 
 
-def save_to_config(mining_address, worker_name, use_cpu, use_gpu, tls_flag, cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port, powerlimit):
+def save_to_config(mining_address, worker_name, use_cpu, use_gpu, tls_flag, cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port, powerlimit, gpuoffset, memoffset):
     config = configparser.ConfigParser()
     config['MINER'] = {
         'MiningAddress': mining_address,
@@ -66,7 +68,9 @@ def save_to_config(mining_address, worker_name, use_cpu, use_gpu, tls_flag, cpu_
         'mining_alg': mining_alg,
         'protocol': protocol,
         'mining_port': mining_port,
-        'powerlimit': powerlimit
+        'powerlimit': powerlimit,
+        'gpuoffset': gpuoffset,
+        'memoffset': memoffset
     }
     with open(CONFIG_FILE, 'w') as configfile:
         config.write(configfile)
@@ -120,20 +124,22 @@ def run_xmrig(mining_address, worker_name, cpu_prio, protocol, mining_port, tls_
     -u {mining_address}.{worker_name} -p x \
     -k {tls_flag} --nicehash --coin monero -a rx/0 \
     --cpu-priority={cpu_prio} --huge-pages-jit --asm=auto \
-    --randomx-cache-qos --randomx-1gb-pages'
+    --randomx-cache-qos --randomx-1gb-pages --cpu-memory-pool=-1 \
+    --argon2-impl=AVX2 '
     os.system(xmrig_command)
 
 
-def run_miniz(mining_alg, mining_address, worker_name, fan_speed, protocol, mining_port, powerlimit):
+def run_miniz(mining_alg, mining_address, worker_name, fan_speed, protocol, mining_port, powerlimit, gpuoffset, memoffset):
     miniz_command = f'sudo ./miniZ --worker worker \
     --url {protocol}://{mining_address}.{worker_name}@{mining_alg}.auto.nicehash.com:{mining_port} \
     --oc1 --oc2 --ocX \
-    --smart-pers --fanspeed={fan_speed} --mt-auto \
-    --power={powerlimit} --autoclocks=enable'
+    --smart-pers --fanspeed={fan_speed} --mt-auto --ocXsamples=1000 \
+    --gpuoffset={gpuoffset} --memoffset={memoffset} \
+    --power={powerlimit} --dag-fix'
     os.system(miniz_command)
 
 
-def run_miner(mining_address, worker_name, use_cpu, use_gpu, tls_flag, cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port, powerlimit):
+def run_miner(mining_address, worker_name, use_cpu, use_gpu, tls_flag, cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port, powerlimit, gpuoffset, memoffset):
     if change_fan_speed.lower() == 'y':
         unlock_fan_control_command = "sudo nvidia-settings -a [gpu:0]/GPUFanControlState=1"
         os.system(unlock_fan_control_command)
@@ -149,7 +155,7 @@ def run_miner(mining_address, worker_name, use_cpu, use_gpu, tls_flag, cpu_prio,
         xmrig_process.start()
     if use_gpu.lower() == 'y':
         miniz_process = multiprocessing.Process(
-            target=run_miniz, args=(mining_alg, mining_address, worker_name, fan_speed, protocol, mining_port, powerlimit))
+            target=run_miniz, args=(mining_alg, mining_address, worker_name, fan_speed, protocol, mining_port, powerlimit, gpuoffset, memoffset))
         miniz_process.start()
 
     if use_cpu.lower() == 'y':
@@ -161,8 +167,8 @@ def run_miner(mining_address, worker_name, use_cpu, use_gpu, tls_flag, cpu_prio,
 if __name__ == "__main__":
     download_deps()
     atexit.register(exit_handler)
-    mining_address, worker_name, use_cpu, use_gpu, tls_flag, cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port, powerlimit = load_from_config()
-    if mining_address is None or worker_name is None or use_cpu is None or use_gpu is None or tls_flag is None or cpu_prio is None or change_fan_speed is None or fan_speed is None or mining_alg is None or protocol is None or mining_port is None:
+    mining_address, worker_name, use_cpu, use_gpu, tls_flag, cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port, powerlimit, gpuoffset, memoffset = load_from_config()
+    if mining_address is None or worker_name is None or use_cpu is None or use_gpu is None or tls_flag is None or cpu_prio is None or change_fan_speed is None or fan_speed is None or mining_alg is None or protocol is None or mining_port is None or powerlimit is None or gpuoffset is None or memoffset is None:
         mining_address = input_mining_address()
         worker_name = input_worker_name()
         protocol = input("Select protocol: (tcp or ssl)").lower()
@@ -179,7 +185,9 @@ if __name__ == "__main__":
         elif use_cpu.lower() == 'n':
             cpu_prio = 0
         use_gpu = input("Do you want to mine using GPU? (y/n): ")
-        powerlimit = input("Enter Power Limit in Watts")
+        gpuoffset = input("Enter Gpu Clock Offset (Like +100): ")
+        memoffset = input("Enter Gpu Memory Clock Offset (Like +200)")
+        powerlimit = input("Enter Power Limit in Watts: ")
         change_fan_speed = input(
             "Do you want to change target fan speed for GPU? (Nvidia-Only, single gpu): (y/n)")
         if change_fan_speed.lower() == 'y':
@@ -190,6 +198,6 @@ if __name__ == "__main__":
             "Do you want to save current settings to config? (y/n): ").lower()
         if save_to_cfg == 'y':
             save_to_config(mining_address, worker_name, use_cpu, use_gpu, tls_flag,
-                           cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port, powerlimit)
+                           cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port, powerlimit, gpuoffset, memoffset)
     run_miner(mining_address, worker_name, use_cpu, use_gpu, tls_flag,
-              cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port, powerlimit)
+              cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port, powerlimit, gpuoffset, memoffset)
