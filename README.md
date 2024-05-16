@@ -11,9 +11,9 @@ sudo nvidia-xconfig -a --cool-bits=31 --allow-empty-initial-configuration
 
 
 # roadmap
-add multi gpu support for fan control
+~~add multi gpu support for fan control~~ Added in 1.2 as miniz command
 
-add locking clock, undervolt, pl limits
+~~add locking clock, undervolt, pl limits~~ Added in 1.3.0
 
 ~~add different algos~~ Added in 1.2
 
