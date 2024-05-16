@@ -10,9 +10,9 @@ CONFIG_FILE = 'config.ini'
 
 
 def exit_handler():
-    revert_fan_speed = input('Do you want to restore fan speed?: (y/n)')
+    revert_fan_speed = input('Do you want to restore fan speed?: (y/n) ')
     if revert_fan_speed.lower() == 'y':
-        lock_fan_control_command = "nvidia-settings -a [gpu:0]/GPUFanControlState=0"
+        lock_fan_control_command = "sudo nvidia-settings -a [gpu:0]/GPUFanControlState=0"
         os.system(lock_fan_control_command)
     else:
         exit(1)
@@ -45,13 +45,14 @@ def load_from_config():
             config['MINER'].get('fan_speed'),
             config['MINER'].get('mining_alg'),
             config['MINER'].get('protocol'),
-            config['MINER'].get('mining_port')
+            config['MINER'].get('mining_port'),
+            config['MINER'].get('powerlimit')
         )
     else:
         return None, None, None, None, None, None, None, None, None, None, None
 
 
-def save_to_config(mining_address, worker_name, use_cpu, use_gpu, tls_flag, cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port):
+def save_to_config(mining_address, worker_name, use_cpu, use_gpu, tls_flag, cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port, powerlimit):
     config = configparser.ConfigParser()
     config['MINER'] = {
         'MiningAddress': mining_address,
@@ -64,7 +65,8 @@ def save_to_config(mining_address, worker_name, use_cpu, use_gpu, tls_flag, cpu_
         'fan_speed': fan_speed,
         'mining_alg': mining_alg,
         'protocol': protocol,
-        'mining_port': mining_port
+        'mining_port': mining_port,
+        'powerlimit': powerlimit
     }
     with open(CONFIG_FILE, 'w') as configfile:
         config.write(configfile)
@@ -78,6 +80,9 @@ def download_deps():
             subprocess.run(['sudo', 'pacman', '-Sy', 'curl'])
         if shutil.which('wget') is None:
             subprocess.run(['sudo', 'pacman', '-Sy', 'wget'])
+        if shutil.which('nvcc') is None:
+            subprocess.run(['sudo', 'pacman', '-Sy', 'cuda'])
+
         if os.path.exists("xmrig"):
             print('xmrig found')
         else:
@@ -119,20 +124,23 @@ def run_xmrig(mining_address, worker_name, cpu_prio, protocol, mining_port, tls_
     os.system(xmrig_command)
 
 
-def run_miniz(mining_alg, mining_address, worker_name, fan_speed, protocol, mining_port):
-    miniz_command = f'sudo ./miniZ --worker worker --url {protocol}://{
-        mining_address}.{worker_name}@{mining_alg}.auto.nicehash.com:{mining_port} --oc1 --smart-pers --fanspeed={fan_speed} --mt-auto'
+def run_miniz(mining_alg, mining_address, worker_name, fan_speed, protocol, mining_port, powerlimit):
+    miniz_command = f'sudo ./miniZ --worker worker \
+    --url {protocol}://{mining_address}.{worker_name}@{mining_alg}.auto.nicehash.com:{mining_port} \
+    --oc1 --oc2 --ocX \
+    --smart-pers --fanspeed={fan_speed} --mt-auto \
+    --power={powerlimit} --autoclocks=enable'
     os.system(miniz_command)
 
 
-def run_miner(mining_address, worker_name, use_cpu, use_gpu, tls_flag, cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port):
+def run_miner(mining_address, worker_name, use_cpu, use_gpu, tls_flag, cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port, powerlimit):
     if change_fan_speed.lower() == 'y':
-        unlock_fan_control_command = "nvidia-settings -a [gpu:0]/GPUFanControlState=1"
+        unlock_fan_control_command = "sudo nvidia-settings -a [gpu:0]/GPUFanControlState=1"
         os.system(unlock_fan_control_command)
-        fan0_speed_command = f"nvidia-settings -a [fan:0]/GPUTargetFanSpeed={
+        fan0_speed_command = f"sudo nvidia-settings -a [fan:0]/GPUTargetFanSpeed={
             fan_speed}"
         os.system(fan0_speed_command)
-        fan1_speed_command = f"nvidia-settings -a [fan:1]/GPUTargetFanSpeed={
+        fan1_speed_command = f"sudo nvidia-settings -a [fan:1]/GPUTargetFanSpeed={
             fan_speed}"
         os.system(fan1_speed_command)
     if use_cpu.lower() == 'y':
@@ -141,7 +149,7 @@ def run_miner(mining_address, worker_name, use_cpu, use_gpu, tls_flag, cpu_prio,
         xmrig_process.start()
     if use_gpu.lower() == 'y':
         miniz_process = multiprocessing.Process(
-            target=run_miniz, args=(mining_alg, mining_address, worker_name, fan_speed, protocol, mining_port))
+            target=run_miniz, args=(mining_alg, mining_address, worker_name, fan_speed, protocol, mining_port, powerlimit))
         miniz_process.start()
 
     if use_cpu.lower() == 'y':
@@ -153,7 +161,7 @@ def run_miner(mining_address, worker_name, use_cpu, use_gpu, tls_flag, cpu_prio,
 if __name__ == "__main__":
     download_deps()
     atexit.register(exit_handler)
-    mining_address, worker_name, use_cpu, use_gpu, tls_flag, cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port = load_from_config()
+    mining_address, worker_name, use_cpu, use_gpu, tls_flag, cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port, powerlimit = load_from_config()
     if mining_address is None or worker_name is None or use_cpu is None or use_gpu is None or tls_flag is None or cpu_prio is None or change_fan_speed is None or fan_speed is None or mining_alg is None or protocol is None or mining_port is None:
         mining_address = input_mining_address()
         worker_name = input_worker_name()
@@ -171,6 +179,7 @@ if __name__ == "__main__":
         elif use_cpu.lower() == 'n':
             cpu_prio = 0
         use_gpu = input("Do you want to mine using GPU? (y/n): ")
+        powerlimit = input("Enter Power Limit in Watts")
         change_fan_speed = input(
             "Do you want to change target fan speed for GPU? (Nvidia-Only, single gpu): (y/n)")
         if change_fan_speed.lower() == 'y':
@@ -181,6 +190,6 @@ if __name__ == "__main__":
             "Do you want to save current settings to config? (y/n): ").lower()
         if save_to_cfg == 'y':
             save_to_config(mining_address, worker_name, use_cpu, use_gpu, tls_flag,
-                           cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port)
+                           cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port, powerlimit)
     run_miner(mining_address, worker_name, use_cpu, use_gpu, tls_flag,
-              cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port)
+              cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port, powerlimit)
