@@ -1,11 +1,11 @@
 # nicehash-on-linux
-Simple python script to mine using GPU(miniZ)/CPU(xmrig) on linux (nicehash), now with fan speed control.
+Simple python script to mine using GPU(miniZ)/CPU(xmrig) on linux (or windows), on nicehash pools.
 
-Tested on arch linux. Install curl and p7zip on your system manually if it is not arch.
+Tested on arch linux and Win10. Install curl and p7zip on your system manually if it is not arch. No installation is needed for windows.
 
 Edit config.ini after first start to change options.
 
-To allow Gpu Fan Control set coolbits to 31
+To allow nvidia Gpu Fan Control in linux set coolbits to 31 
 
 sudo nvidia-xconfig -a --cool-bits=31 --allow-empty-initial-configuration
 
