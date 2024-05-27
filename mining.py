@@ -210,7 +210,7 @@ def run_miner(mining_address, worker_name, use_cpu, use_gpu, tls_flag, memoffset
 if __name__ == "__main__":
     download_deps()
     mining_address, worker_name, use_cpu, use_gpu, tls_flag, cpu_prio, change_fan_speed, fan_speed, mining_alg, protocol, mining_port, powerlimit, gpuoffset, memoffset, memoffsetcommand, gpuoffsetcommand = load_from_config()
-    if mining_address is None or worker_name is None or use_cpu is None or use_gpu is None or tls_flag is None or cpu_prio is None or change_fan_speed is None or fan_speed is None or mining_alg is None or protocol is None or mining_port is None or powerlimit is None or gpuoffset is None or memoffset is None:
+    if mining_address is None or worker_name is None or use_cpu is None or use_gpu is None or tls_flag is None or cpu_prio is None or change_fan_speed is None or fan_speed is None or mining_alg is None or protocol is None or mining_port is None or powerlimit is None or gpuoffset is None or memoffset is None or memoffsetcommand is None or gpuoffsetcommand is None:
         mining_address = input_mining_address()
         worker_name = input_worker_name()
         protocol = input("Select protocol: (tcp or ssl)").lower()
