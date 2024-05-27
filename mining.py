@@ -112,6 +112,8 @@ def download_deps():
         if os.path.exists("miniz.tar"):
             os.remove('miniz.tar')
     if platform.system() == 'Windows':
+        if shutil.which('7z') is None:
+            print("7z not found")
         if os.path.exists("miniZ.exe"):
             print("miniz found")
         else:
